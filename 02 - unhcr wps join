@@ -1,0 +1,45 @@
+--1. Main goal in here was to see origin country, asylum country, WPS index and number of displacement women in the same table.
+    There was a problem with the country names in both data sources, so I had to create a dictionary with the correspondent names.
+    I had to use an OUTER JOIN for checking the number and create the dictionary on a separate sheet.
+
+SELECT 
+  unhcr.`Country of Origin` AS origin_country,
+  origin_wps.`WPS index` AS origin_wps_score,
+  origin_wps.Region AS origin_region,
+  unhcr.`Country of Asylum` AS asylum_country,
+  asylum_wps.`WPS index` AS asylum_wps_score,
+  asylum_wps.Region AS asylum_region,
+
+  SUM(unhcr.`Female Total`) AS total_female_displaced,
+  SAFE_DIVIDE(SUM(unhcr.`Female Total`), SUM(unhcr.TOTAL)) AS female_percentage
+FROM `wps-project-2026.wps_data.unhcr_demographics` AS unhcr
+
+-- 2. Connect the dictionary for the Origin Country
+
+LEFT JOIN `wps-project-2026.wps_data.country_name_mapping` AS map_origin
+  ON unhcr.`Country of Origin` = map_origin.unhcr_name
+
+-- 3. Connect the dictionary for the Asylum Country
+
+LEFT JOIN `wps-project-2026.wps_data.country_name_mapping` AS map_asylum
+  ON unhcr.`Country of Asylum` = map_asylum.unhcr_name
+
+-- 4. Match the translated Origin name to the WPS Index table
+
+LEFT JOIN `wps-project-2026.wps_data.wps_index` AS origin_wps
+  ON COALESCE(map_origin.wps_name, unhcr.`Country of Origin`) = origin_wps.string_field_1
+
+-- 5. Match the translated Asylum name to the WPS Index table
+
+LEFT JOIN `wps-project-2026.wps_data.wps_index` AS asylum_wps
+  ON COALESCE(map_asylum.wps_name, unhcr.`Country of Asylum`) = asylum_wps.string_field_1
+WHERE unhcr.year = 2024
+  AND unhcr.`Country of Origin` != unhcr.`Country of Asylum`
+GROUP BY 
+  origin_country, 
+  origin_wps_score, 
+  origin_region, 
+  asylum_country, 
+  asylum_wps_score, 
+  asylum_region
+ORDER BY total_female_displaced DESC;
