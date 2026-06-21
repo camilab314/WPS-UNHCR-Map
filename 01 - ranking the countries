@@ -1,0 +1,46 @@
+--1. UNHCR data. Organizing the top origin countries, not letting origin and asylum be the same.
+      Finding the total refugees, the female refugees and the percentage.
+
+SELECT 
+  `Country of Origin`, 
+  Year, 
+  SUM(Total) AS total_refugees,
+  SUM(`Female Total`) AS female_total,
+  ROUND(
+    SAFE_DIVIDE(SUM(`Female Total`), SUM(Total))*100,2) AS female_percentage
+FROM `wps-project-2026.wps_data.unhcr_demographics`
+WHERE Year = 2024
+  AND `Country of Origin` != `Country of Asylum`
+GROUP BY `Country of Origin`, Year
+ORDER BY female_total DESC
+LIMIT 10;
+
+--2. Same procedures for asylum countries, also in the UNHCR data.
+
+SELECT 
+  `Country of Asylum`, 
+  Year, 
+  SUM(Total) AS total_arrivals,
+  SUM(`Female Total`) AS female_arrivals,
+
+  ROUND(
+    SAFE_DIVIDE(SUM(`Female Total`), SUM(Total)) * 100, 
+    2
+  ) AS female_percentage
+FROM `wps-project-2026.wps_data.unhcr_demographics`
+WHERE Year = 2024
+  AND `Country of Origin` != `Country of Asylum`
+GROUP BY `Country of Asylum`, Year
+ORDER BY female_arrivals DESC
+LIMIT 10;
+
+--3. Using the WPS index to order the countries by safety
+
+SELECT 
+  `string_field_1` AS country,
+  `string_field_2` AS country_code,
+FROM `wps-project-2026.wps_data.wps_index`
+WHERE `string_field_1` IS NOT NULL 
+  AND `string_field_1` != 'Country'
+ORDER BY `WPS index` DESC
+LIMIT 10;
